@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 
 class Neuron(object):
@@ -9,10 +10,7 @@ class Neuron(object):
 
     """
 
-    def __init__(self, is_bias=False, value=0):
-        self.is_bias = is_bias
-        if is_bias:
-            value = 1
+    def __init__(self, value=0):
         self.value = value
 
     def calculate_sigmoid(self):
@@ -31,33 +29,33 @@ class Layer(object):
     Holds the layer data
 
     """
-#TODO assure that the neural names only have 3 values
+# TODO assure that the layer names only have 3 values
 
-    def __init__(self, neuron_number, layer_type=None, next_layer=None):
+    def __init__(self, neuron_number, layer_type=None, next_layer=None, mapping_matrix=None):
         self.layer_type = layer_type
         self.next_layer = next_layer
+        self.mapping_matrix = mapping_matrix
         self.neuron_list = []
         for i in range(0, neuron_number):
             neuron = Neuron()
             self.neuron_list.append(neuron)
 
-    def add_bias_neuron(self):
-        neuron = Neuron(is_bias=True)
-        self.neuron_list.append(neuron)
-
-    def create_mapping_matrix(self):
+    def _create_random_mapping_matrix(self):
         """
-        Let the Layer has n units itself and the next layer has m units therefore we need
-
-        a transformation matrix from current layer to next layer which has a dimension of m x (n+1)
-        but be careful that bias units are added automatically so we only neen m
+        Let the Layer has l_in units itself and the next layer has l_out units therefore we need
+        a transformation matrix from current layer to next layer which has a dimension of l_out x (l_in + 1)
+        and, please notice that bias units are not count as neurons
 
         """
-        if self.layer_type == 'output': # Output layer cannot have mapping
-            return None
+        if self.layer_type == 'output':  # Output layer cannot have mapping
+            pass
         else:
-            current_unit_number = len(self.neuron_list)
-
+            l_in = len(self.neuron_list)  # the number of units in current layer
+            l_out = len(self.next_layer.neuron_list)  # the number of units in output layer
+            weight_matrix = np.random.random((l_out, l_in + 1))  # initialized weight matrix in between 0 and 1
+            weight_matrix = weight_matrix * 2 * .12  # normalize it through the epsilon value in which .12 for my choice
+            weight_matrix -= 0.12  # shift them left by 0.12 so that the mean still remains zero
+            self.mapping_matrix = weight_matrix
 
     def connect_layer_to_next(self, layer_after_current_layer):
         """
@@ -65,6 +63,7 @@ class Layer(object):
 
         """
         self.next_layer = layer_after_current_layer
+        self._create_random_mapping_matrix()
 
     def __repr__(self):
         return '%s and number of neurons %s' % (self.layer_type, len(self.neuron_list))
@@ -83,7 +82,6 @@ class NN(object):
         for number in layer_neuron_list:
             if layer_neuron_list.index(number) == 0:
                 layer = Layer(number, layer_type='input')
-                layer.add_bias_neuron()
                 self.layer_list.append(layer)
             elif layer_neuron_list.index(number) == len(layer_neuron_list) - 1:
                 layer = Layer(number, layer_type='output')
@@ -91,7 +89,6 @@ class NN(object):
                 self.layer_list.append(layer)
             else:
                 layer = Layer(number, layer_type='hidden')
-                layer.add_bias_neuron()
                 layer.is_hidden_layer = True
                 self.layer_list.append(layer)
 
@@ -109,4 +106,7 @@ class NN(object):
 if __name__ == '__main__':
     first_network = NN([3, 5, 2])
     first_network.connect_layers()
-    print first_network
+    import pdb
+    pdb.set_trace()
+    for item in first_network.layer_list:
+        print(item)
