@@ -196,6 +196,17 @@ class Layer(object):
         theta_transpose_times_delta = np.matmul(self.transpose_mapping_matrix, self.next_layer.delta_vector)
         self.delta_vector = np.multiply(theta_transpose_times_delta, self.calculate_sigmoid_gradient())
 
+    @property
+    def big_delta(self):
+        """
+        Used to calculate big delta from the equation of DELTA = delta^(l+1) * a_vector transpose
+
+        """
+        if self.layer_type != 'output':
+            raise AssertionError('Big delta is only available for input and hidden layer')
+
+        return np.matmul(self.next_layer.delta_vector, np.transpose(self.a_vector))
+
 
 class NN(object):
     """
@@ -240,6 +251,20 @@ class NN(object):
             else:
                 return layer.a_vector
 
+    @staticmethod
+    def create_y_mapping(y_value):
+        """
+        Codes the y vector sparsely
+        :param y_value: integer in between 0-9
+        :return: a numpy array containing zeros and only one 1 in the true label
+        """
+        ret = np.zeros(10)
+        if y_value == 10:
+            ret[0] = 1
+        else:
+            ret[y_value] = 1
+        return ret
+
     def _connect_layers(self):
         """
         Layers are automatically connected as soon as user initialized the neural net(NN)
@@ -269,19 +294,15 @@ class NN(object):
                 next_layer_value_vector = layer.calculate_next_layer_values()
                 layer.next_layer.value_vector = next_layer_value_vector
 
-    @staticmethod
-    def create_y_mapping(y_value):
+    def back_propagate(self, data):
         """
-        Codes the y vector sparsely
-        :param y_value: integer in between 0-9
-        :return: a numpy array containing zeros and only one 1 in the true label
+        Implements the back propagation algorithm
+
+
         """
-        ret = np.zeros(10)
-        if y_value == 10:
-            ret[0] = 1
-        else:
-            ret[y_value] = 1
-        return ret
+        pass
+
+
 
 
 
