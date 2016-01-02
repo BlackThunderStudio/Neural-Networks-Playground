@@ -1,4 +1,3 @@
-import math
 import numpy as np
 
 
@@ -13,35 +12,38 @@ class Neuron(object):
     def __init__(self, value=0):
         self.value = value
 
-    def calculate_sigmoid(self):
-        """
-        Calculates the sigmoid value of the z value of the net
-
-        """
-        return 1 / (1 + math.exp(-self.value))
-
     def __repr__(self):
         return str(self.value)
 
 
 class Layer(object):
     """
-    Holds the layer data as follows you need to give the neuron number as an integer and remmaing part takes the magic
+    Holds the layer data as follows you need to give the neuron number as an integer and remaining part takes the magic
 
     """
 # TODO assure that the layer names only have 3 values
 
-    bias_array = np.ones((1,1))
+    _bias_array = np.ones((1,1))
 
-    def __init__(self, neuron_number, layer_type=None, next_layer=None, mapping_matrix=None, value_vector=None):
+    def __init__(self, neuron_number,
+                 layer_type=None,
+                 next_layer=None,
+                 mapping_matrix=None,
+                 value_vector=None,
+                 a_vector=None):
+
         self.layer_type = layer_type
         self.next_layer = next_layer
         self.mapping_matrix = mapping_matrix
         self.value_vector = value_vector
+        self.a_vector = a_vector
         self.neuron_list = []
         for i in range(0, neuron_number):
             neuron = Neuron()
             self.neuron_list.append(neuron)
+
+    def __repr__(self):
+        return '%s and number of neurons %s' % (self.layer_type, len(self.neuron_list))
 
     def _create_random_mapping_matrix(self):
         """
@@ -68,17 +70,38 @@ class Layer(object):
         self.next_layer = layer_after_current_layer
         self._create_random_mapping_matrix()
 
-    def _generate_value_vector(self, contains_bias=True):
+    def generate_value_vector(self):
         """
-        Return a vector that contains all the values of the current layer's neurons plus 1 as a bias.
+        Return a vector that contains all the values of the input layer's neurons plus 1 as a bias.
 
         """
-        if contains_bias:
-            result_vector = np.zeros(shape=(len(self.neuron_list) + 1, 1))  # initialize the vector
-            result_vector[0] = 1  # add bias unit
-            for i in range(1, len(self.neuron_list) + 1):
-                result_vector[i] = self.neuron_list[i - 1].value
-            self.value_vector = result_vector
+
+        if self.layer_type != 'input':
+            raise NotImplementedError('This method is only available for input layer')
+        result_vector = np.zeros(shape=(len(self.neuron_list) + 1, 1))  # initialize the vector
+        result_vector[0] = 1  # add bias unit
+        for i in range(1, len(self.neuron_list) + 1):
+            result_vector[i] = self.neuron_list[i - 1].value
+        self.value_vector = result_vector
+
+    def add_bias_to_hidden_layer(self):
+        """
+        Adds bias unit to the sigmoid of value_vector if the layer type is hidden and also sets the a_value for
+        forward propagation
+
+        """
+        if self.layer_type != 'hidden':
+            raise NotImplementedError('This method is only available for hidden layers')
+        self.a_vector = np.concatenate((Layer._bias_array, self._calculate_sigmoid()))
+
+    def _calculate_sigmoid(self):
+        """
+        Calculates the sigmoid of a value_vector in current layer which is denoted as a values
+
+        """
+        if self.layer_type == 'input':
+            raise AssertionError('Input layer does not contain sigmoid version')
+        return 1.0 / (1.0 + np.exp(-1.0 * self.value_vector))
 
     def calculate_next_layer_values(self):
         """
@@ -86,15 +109,36 @@ class Layer(object):
         Only thing is the operation operate this is matrix multiplication M x n where n is bias and the number of values
         of neuron in current layer
 
+
+        Returns the next_layer's value_vector
+
         """
-        if self.layer_type == 'input':  # If it is the input layer then we do not need to calculate sigmoid of values
-            pass
+        if self.layer_type == 'input':
+            return np.matmul(self.mapping_matrix, self.value_vector)
+        elif self.layer_type == 'hidden':
+            return np.matmul(self.mapping_matrix, self.a_vector)
+        else:
+            raise AssertionError('Output Layer cannot have next_layer')
 
+    def update_value_vector(self, new_value_vector):
+        """
+        Designed for updating the value vector after forward propagation
 
+        :param new_value_vector coming from the previous layer
 
+        """
+        if self.layer_type == 'input':
+            raise AssertionError("Input layer's values cannot be updated")
+        self.value_vector = new_value_vector
 
-    def __repr__(self):
-        return '%s and number of neurons %s' % (self.layer_type, len(self.neuron_list))
+    def calculate_output(self):
+        """
+        Returns the sigmoid function of the output_layer's value_vector
+
+        """
+        if self.layer_type != 'output':
+            raise NotImplementedError('calculate_output method is only available for output layer')
+        self.a_vector = self._calculate_sigmoid()
 
 
 class NN(object):
@@ -123,6 +167,9 @@ class NN(object):
                 layer.is_hidden_layer = True
                 self.layer_list.append(layer)
 
+    def __repr__(self):
+        return 'Number of Layers: %s ' % len(self.layer_list)
+
     def connect_layers(self):
         for i in range(0, len(self.layer_list)):
             try:
@@ -130,11 +177,33 @@ class NN(object):
             except IndexError:
                 pass
 
-    def __repr__(self):
-        return 'Number of Layers: %s ' % len(self.layer_list)
+    def forward_propagate(self):
+        """
+        Implements the forward propagation algorithm
+
+        """
+        for layer in self.layer_list:
+            if layer.layer_type == 'input':
+                layer.generate_value_vector()
+                hidden_layer_value_vector = layer.calculate_next_layer_values()  # Calculate z vector of hidden layer
+                layer.next_layer.value_vector = hidden_layer_value_vector  # Assign z vector to next layer
+            elif layer.layer_type == 'output':
+                layer.calculate_output()  # Corresponds to h_theta value of neural net
+            else:
+                layer.add_bias_to_hidden_layer()
+                next_layer_value_vector = layer.calculate_next_layer_values()
+                layer.next_layer.value_vector = next_layer_value_vector
 
 
-if __name__ == '__main__':
-    first_network = NN([3, 5, 2])
-    first_network.connect_layers()
 
+
+
+
+
+
+# if __name__ == '__main__':
+    # first_network = NN([3, 5, 1])
+    # first_network.connect_layers() # Without connecting layers further actions cannot be done
+    # first_network.forward_propagate()
+    # for neuron in first_network.layer_list[-1].neuron_list:
+    #     print neuron
