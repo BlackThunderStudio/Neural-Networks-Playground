@@ -5,7 +5,7 @@ class Neuron(object):
     """
     Hold the neuron data
 
-    Value represents the z valu of a neuron
+    Value represents the z value of a neuron
 
     """
 
@@ -189,6 +189,7 @@ class NN(object):
                 layer.next_layer.value_vector = hidden_layer_value_vector  # Assign z vector to next layer
             elif layer.layer_type == 'output':
                 layer.calculate_output()  # Corresponds to h_theta value of neural net
+                print layer.a_vector
             else:
                 layer.add_bias_to_hidden_layer()
                 next_layer_value_vector = layer.calculate_next_layer_values()
@@ -201,9 +202,7 @@ class NN(object):
 
 
 
-# if __name__ == '__main__':
-    # first_network = NN([3, 5, 1])
-    # first_network.connect_layers() # Without connecting layers further actions cannot be done
-    # first_network.forward_propagate()
-    # for neuron in first_network.layer_list[-1].neuron_list:
-    #     print neuron
+if __name__ == '__main__':
+    first_network = NN([3, 5, 2])
+    first_network.connect_layers()  # Without connecting layers further actions cannot be done
+    first_network.forward_propagate()
