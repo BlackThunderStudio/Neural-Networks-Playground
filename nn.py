@@ -23,7 +23,8 @@ class Layer(object):
     """
 # TODO assure that the layer names only have 3 values
 
-    _bias_array = np.ones((1,1))
+    _bias_array = np.ones(1)
+
 
     def __init__(self, neuron_number,
                  layer_type=None,
@@ -94,6 +95,15 @@ class Layer(object):
             raise NotImplementedError('This method is only available for hidden layers')
         self.a_vector = np.concatenate((Layer._bias_array, self._calculate_sigmoid()))
 
+    def _add_bias_to_input_layer(self):
+        """
+        Add bias to the input layer without considering the sigmoid values since it is input layer
+
+        """
+        if self.layer_type != 'input':
+            raise NotImplementedError('This method is only available for input layers')
+        self.value_vector = np.concatenate((Layer._bias_array, self.value_vector))
+
     def _calculate_sigmoid(self):
         """
         Calculates the sigmoid of a value_vector in current layer which is denoted as a values
@@ -131,7 +141,7 @@ class Layer(object):
             raise AssertionError("Input layer's values cannot be updated")
         self.value_vector = new_value_vector
 
-    def calculate_output(self):
+    def calculate_htheta(self):
         """
         Returns the sigmoid function of the output_layer's value_vector
 
@@ -139,6 +149,22 @@ class Layer(object):
         if self.layer_type != 'output':
             raise NotImplementedError('calculate_output method is only available for output layer')
         self.a_vector = self._calculate_sigmoid()
+
+    def update_mapping_matrix(self, matrix):
+        """
+        Updates the mapping matrix of a layer based on back-propagation algorithm
+        :param matrix is the updated version of mapping_matrix
+
+        """
+        self.mapping_matrix = matrix
+
+    def feed_input_layer(self, data_point):
+        """
+
+
+        """
+        self.value_vector = data_point
+        self._add_bias_to_input_layer()
 
 
 class NN(object):
@@ -153,6 +179,7 @@ class NN(object):
 
     def __init__(self, layer_neuron_list):
         self.layer_list = []
+        assert (layer_neuron_list is not None), 'Empty list is not valid parameter for NN object'
 
         for number in layer_neuron_list:
             if layer_neuron_list.index(number) == 0:
@@ -166,29 +193,35 @@ class NN(object):
                 layer = Layer(number, layer_type='hidden')
                 layer.is_hidden_layer = True
                 self.layer_list.append(layer)
+        self._connect_layers()
 
     def __repr__(self):
         return 'Number of Layers: %s ' % len(self.layer_list)
 
-    def connect_layers(self):
+    def _connect_layers(self):
+        """
+        Layers are automatically connected as soon as user initialized the neural net(NN)
+
+        """
+        assert (self.layer_list is not None), 'Layers have to contain neurons'
         for i in range(0, len(self.layer_list)):
             try:
                 self.layer_list[i].connect_layer_to_next(self.layer_list[i + 1])
             except IndexError:
                 pass
 
-    def forward_propagate(self):
+    def forward_propagate(self, data):
         """
         Implements the forward propagation algorithm
 
         """
         for layer in self.layer_list:
             if layer.layer_type == 'input':
-                layer.generate_value_vector()
+                layer.feed_input_layer(data)
                 hidden_layer_value_vector = layer.calculate_next_layer_values()  # Calculate z vector of hidden layer
                 layer.next_layer.value_vector = hidden_layer_value_vector  # Assign z vector to next layer
             elif layer.layer_type == 'output':
-                layer.calculate_output()  # Corresponds to h_theta value of neural net
+                layer.calculate_htheta()  # Corresponds to h_theta value of neural net
                 print layer.a_vector
             else:
                 layer.add_bias_to_hidden_layer()
@@ -197,12 +230,3 @@ class NN(object):
 
 
 
-
-
-
-
-
-if __name__ == '__main__':
-    first_network = NN([3, 5, 2])
-    first_network.connect_layers()  # Without connecting layers further actions cannot be done
-    first_network.forward_propagate()
