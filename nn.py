@@ -25,7 +25,6 @@ class Layer(object):
 
     _bias_array = np.ones(1)
 
-
     def __init__(self, neuron_number,
                  layer_type=None,
                  next_layer=None,
@@ -70,20 +69,6 @@ class Layer(object):
         """
         self.next_layer = layer_after_current_layer
         self._create_random_mapping_matrix()
-
-    def generate_value_vector(self):
-        """
-        Return a vector that contains all the values of the input layer's neurons plus 1 as a bias.
-
-        """
-
-        if self.layer_type != 'input':
-            raise NotImplementedError('This method is only available for input layer')
-        result_vector = np.zeros(shape=(len(self.neuron_list) + 1, 1))  # initialize the vector
-        result_vector[0] = 1  # add bias unit
-        for i in range(1, len(self.neuron_list) + 1):
-            result_vector[i] = self.neuron_list[i - 1].value
-        self.value_vector = result_vector
 
     def add_bias_to_hidden_layer(self):
         """
@@ -160,9 +145,12 @@ class Layer(object):
 
     def feed_input_layer(self, data_point):
         """
+        The data point containing the future set is equaled to the layer_s value vector
 
 
         """
+        if self.layer_type != 'input':
+            raise AssertionError('Only input layer can be feed')
         self.value_vector = data_point
         self._add_bias_to_input_layer()
 
