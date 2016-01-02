@@ -21,20 +21,23 @@ class Neuron(object):
         return 1 / (1 + math.exp(-self.value))
 
     def __repr__(self):
-        return self.value
+        return str(self.value)
 
 
 class Layer(object):
     """
-    Holds the layer data
+    Holds the layer data as follows you need to give the neuron number as an integer and remmaing part takes the magic
 
     """
 # TODO assure that the layer names only have 3 values
 
-    def __init__(self, neuron_number, layer_type=None, next_layer=None, mapping_matrix=None):
+    bias_array = np.ones((1,1))
+
+    def __init__(self, neuron_number, layer_type=None, next_layer=None, mapping_matrix=None, value_vector=None):
         self.layer_type = layer_type
         self.next_layer = next_layer
         self.mapping_matrix = mapping_matrix
+        self.value_vector = value_vector
         self.neuron_list = []
         for i in range(0, neuron_number):
             neuron = Neuron()
@@ -65,6 +68,31 @@ class Layer(object):
         self.next_layer = layer_after_current_layer
         self._create_random_mapping_matrix()
 
+    def _generate_value_vector(self, contains_bias=True):
+        """
+        Return a vector that contains all the values of the current layer's neurons plus 1 as a bias.
+
+        """
+        if contains_bias:
+            result_vector = np.zeros(shape=(len(self.neuron_list) + 1, 1))  # initialize the vector
+            result_vector[0] = 1  # add bias unit
+            for i in range(1, len(self.neuron_list) + 1):
+                result_vector[i] = self.neuron_list[i - 1].value
+            self.value_vector = result_vector
+
+    def calculate_next_layer_values(self):
+        """
+        We are given a mapping matrix (W) from layer l to layer l + 1, and required to find each layer's neuron's values
+        Only thing is the operation operate this is matrix multiplication M x n where n is bias and the number of values
+        of neuron in current layer
+
+        """
+        if self.layer_type == 'input':  # If it is the input layer then we do not need to calculate sigmoid of values
+            pass
+
+
+
+
     def __repr__(self):
         return '%s and number of neurons %s' % (self.layer_type, len(self.neuron_list))
 
@@ -73,6 +101,9 @@ class NN(object):
     """
     Define neurons and neural nets for work
 
+    layer_neuron_list is a special kind of input for instance : [3 5 2] list means that we are going to have
+    3 layers and by default input layer is the first entry and output layer is the last entry of layer_neuron_list
+    and the numbers in layer_neuron_list represents the number of units in each layer
 
     """
 
@@ -106,7 +137,4 @@ class NN(object):
 if __name__ == '__main__':
     first_network = NN([3, 5, 2])
     first_network.connect_layers()
-    import pdb
-    pdb.set_trace()
-    for item in first_network.layer_list:
-        print(item)
+
