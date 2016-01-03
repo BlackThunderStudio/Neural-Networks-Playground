@@ -47,6 +47,17 @@ class Layer(object):
     def __repr__(self):
         return '%s and number of neurons %s' % (self.layer_type, len(self.neuron_list))
 
+    @staticmethod
+    def _correct_numpy(array):
+        """
+        When the data is read from .mat file numpy does not create default columns which makes impossible the matrix
+        calculation, therefore it is need to correct them
+        :param array:
+
+        """
+        array.shape = (array.shape[0],1)
+        return array
+
     @property
     def transpose_mapping_matrix(self):
         """
@@ -62,16 +73,20 @@ class Layer(object):
         Used to calculate big delta from the equation of DELTA = delta^(l+1) * a_vector transpose
 
         """
-        if self.layer_type != 'output':
+        self.next_layer.delta_vector = Layer._correct_numpy(self.next_layer.delta_vector)
+        self.a_vector = Layer._correct_numpy(self.a_vector)
+
+        if self.layer_type != 'hidden':
             raise AssertionError('Big delta is only available for input and hidden layer')
         return np.matmul(self.next_layer.delta_vector, np.transpose(self.a_vector))
-
-
 
     @property
     def big_delta_input(self):
         if self.layer_type != 'input':
             raise AssertionError('This property is only available for input layer')
+
+        self.value_vector = Layer._correct_numpy(self.value_vector)
+        self.next_layer.delta_vector = Layer._correct_numpy(self.next_layer.delta_vector)
         return np.matmul(self.next_layer.delta_vector, np.transpose(self.value_vector))
 
     def _create_random_mapping_matrix(self):
@@ -312,7 +327,7 @@ class NN(object):
             except IndexError:
                 pass
 
-    def forward_propagate(self, data):
+    def _forward_propagate(self, data):
         """
         Implements the forward propagation algorithm
 
@@ -324,18 +339,20 @@ class NN(object):
             next_layer_value_vector = layer.calculate_next_layer_values()
             layer.next_layer.value_vector = next_layer_value_vector
         self.output_layer.calculate_htheta()  # Corresponds to h_theta value of neural net
-        
+
     def back_propagate(self, **kwargs):
         """
         Implements the back propagation algorithm for neural net
 
 
         """
-        big_delta_cumulative = 0
-        self.forward_propagate(kwargs['data'])
+        cumulative_delta_input_layer = 0
+        self._forward_propagate(kwargs['data'])
         self.output_layer.calculate_output_layer_delta(NN._create_y_mapping(kwargs['y']))
         for hidden_layer in self.hidden_layer_list:
             hidden_layer.calculate_hidden_layer_delta()
+        # TODO cumulative big delta implementations
+        self.input_layer.big_delta_input
 
 
 
