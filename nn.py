@@ -47,6 +47,33 @@ class Layer(object):
     def __repr__(self):
         return '%s and number of neurons %s' % (self.layer_type, len(self.neuron_list))
 
+    @property
+    def transpose_mapping_matrix(self):
+        """
+        In order to implement back propagation we need to calculate the theta_transpose times a_vector
+        this method calculates the transpose operation
+
+        """
+        return np.transpose(self.mapping_matrix)
+
+    @property
+    def big_delta_hidden(self):
+        """
+        Used to calculate big delta from the equation of DELTA = delta^(l+1) * a_vector transpose
+
+        """
+        if self.layer_type != 'output':
+            raise AssertionError('Big delta is only available for input and hidden layer')
+        return np.matmul(self.next_layer.delta_vector, np.transpose(self.a_vector))
+
+
+
+    @property
+    def big_delta_input(self):
+        if self.layer_type != 'input':
+            raise AssertionError('This property is only available for input layer')
+        return np.matmul(self.next_layer.delta_vector, np.transpose(self.value_vector))
+
     def _create_random_mapping_matrix(self):
         """
         Let the Layer has l_in units itself and the next layer has l_out units therefore we need
@@ -79,7 +106,7 @@ class Layer(object):
 
         """
         if self.layer_type != 'hidden':
-            raise NotImplementedError('This method is only available for hidden layers')
+            raise AssertionError('This method is only available for hidden layers')
         self.a_vector = np.concatenate((Layer._bias_array, self._calculate_sigmoid()))
 
     def _add_bias_to_input_layer(self):
@@ -88,8 +115,8 @@ class Layer(object):
 
         """
         if self.layer_type != 'input':
-            raise NotImplementedError('This method is only available for input layers')
-        self.value_vector = np.concatenate((Layer._bias_array, self.value_vector))
+            raise AssertionError('This method is only available for input layers')
+        self.a_vector = np.concatenate((Layer._bias_array, self.value_vector))
 
     def _calculate_sigmoid(self):
         """
@@ -110,12 +137,9 @@ class Layer(object):
         Returns the next_layer's value_vector
 
         """
-        if self.layer_type == 'input':
-            return np.matmul(self.mapping_matrix, self.value_vector)
-        elif self.layer_type == 'hidden':
+        if self.layer_type == 'hidden' or self.layer_type == 'input':
             return np.matmul(self.mapping_matrix, self.a_vector)
-        else:
-            raise AssertionError('Output Layer cannot have next_layer')
+        raise AssertionError('Output Layer cannot have next_layer')
 
     def update_value_vector(self, new_value_vector):
         """
@@ -134,17 +158,8 @@ class Layer(object):
 
         """
         if self.layer_type != 'output':
-            raise NotImplementedError('calculate_output method is only available for output layer')
+            raise AssertionError('calculate_output method is only available for output layer')
         self.a_vector = self._calculate_sigmoid()
-
-    @property
-    def transpose_mapping_matrix(self):
-        """
-        In order to implement back propagation we need to calculate the theta_transpose times a_vector
-        this method calculates the transpose operation
-
-        """
-        return np.transpose(self.mapping_matrix)
 
     def update_mapping_matrix(self, matrix):
         """
@@ -165,15 +180,6 @@ class Layer(object):
         self.value_vector = data_point
         self._add_bias_to_input_layer()
 
-    def calculate_output_layer_delta(self, y_vector):
-        """
-        This method simply calculates the vectorized version of the last layer's delta value
-
-        """
-        if self.layer_type != 'output':
-            raise AssertionError('This method is only available for output layer')
-        self.delta_vector = self.a_vector - y_vector
-
     def calculate_sigmoid_gradient(self):
         """
         This method is the implementation of the gradient of the sigmoid function which is simply:
@@ -186,6 +192,15 @@ class Layer(object):
         ones = np.ones(size)  # create ones vector for subtraction
         return np.multiply(self.a_vector, ones - self.a_vector)
 
+    def calculate_output_layer_delta(self, y_vector):
+        """
+        This method simply calculates the vectorized version of the last layer's delta value
+
+        """
+        if self.layer_type != 'output':
+            raise AssertionError('This method is only available for output layer')
+        self.delta_vector = self.a_vector - y_vector
+
     def calculate_hidden_layer_delta(self):
         """
         To calculate the hidden layer's delta values
@@ -195,17 +210,6 @@ class Layer(object):
             raise AssertionError('This method is only available for hidden layer')
         theta_transpose_times_delta = np.matmul(self.transpose_mapping_matrix, self.next_layer.delta_vector)
         self.delta_vector = np.multiply(theta_transpose_times_delta, self.calculate_sigmoid_gradient())
-
-    @property
-    def big_delta(self):
-        """
-        Used to calculate big delta from the equation of DELTA = delta^(l+1) * a_vector transpose
-
-        """
-        if self.layer_type != 'output':
-            raise AssertionError('Big delta is only available for input and hidden layer')
-
-        return np.matmul(self.next_layer.delta_vector, np.transpose(self.a_vector))
 
 
 class NN(object):
@@ -238,6 +242,37 @@ class NN(object):
         return 'Number of Layers: %s ' % len(self.layer_list)
 
     @property
+    def output_layer(self):
+        """
+
+        :return: output layer of the given neural net
+
+        """
+        return self.layer_list[-1]
+
+    @property
+    def hidden_layer_list(self):
+        """
+
+        :return: hidden layer list of a network
+        """
+        ret = list()
+        for layer in self.layer_list:
+            if layer.layer_type == 'hidden':
+                ret.append(layer)
+            else:
+                pass
+        return ret
+
+    @property
+    def input_layer(self):
+        """
+
+        :return: input layer of a network
+        """
+        return self.layer_list[0]
+
+    @property
     def h_theta(self):
         """
         This property works correctly only if it works after forward propagation, which makes sense because it is only
@@ -252,7 +287,7 @@ class NN(object):
                 return layer.a_vector
 
     @staticmethod
-    def create_y_mapping(y_value):
+    def _create_y_mapping(y_value):
         """
         Codes the y vector sparsely
         :param y_value: integer in between 0-9
@@ -282,25 +317,28 @@ class NN(object):
         Implements the forward propagation algorithm
 
         """
-        for layer in self.layer_list:
-            if layer.layer_type == 'input':
-                layer.feed_input_layer(data)
-                hidden_layer_value_vector = layer.calculate_next_layer_values()  # Calculate z vector of hidden layer
-                layer.next_layer.value_vector = hidden_layer_value_vector  # Assign z vector to next layer
-            elif layer.layer_type == 'output':
-                layer.calculate_htheta()  # Corresponds to h_theta value of neural net
-            else:
-                layer.add_bias_to_hidden_layer()
-                next_layer_value_vector = layer.calculate_next_layer_values()
-                layer.next_layer.value_vector = next_layer_value_vector
-
-    def back_propagate(self, data):
+        self.input_layer.feed_input_layer(data)
+        self.input_layer.next_layer.value_vector = self.input_layer.calculate_next_layer_values()  # Calculate z vector of hidden layer
+        for layer in self.hidden_layer_list:
+            layer.add_bias_to_hidden_layer()
+            next_layer_value_vector = layer.calculate_next_layer_values()
+            layer.next_layer.value_vector = next_layer_value_vector
+        self.output_layer.calculate_htheta()  # Corresponds to h_theta value of neural net
+        
+    def back_propagate(self, **kwargs):
         """
-        Implements the back propagation algorithm
+        Implements the back propagation algorithm for neural net
 
 
         """
-        pass
+        big_delta_cumulative = 0
+        self.forward_propagate(kwargs['data'])
+        self.output_layer.calculate_output_layer_delta(NN._create_y_mapping(kwargs['y']))
+        for hidden_layer in self.hidden_layer_list:
+            hidden_layer.calculate_hidden_layer_delta()
+
+
+
 
 
 
