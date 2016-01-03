@@ -59,6 +59,14 @@ class Layer(object):
         return array
 
     @property
+    def neuron_number(self):
+        """
+        Returns the neuron number
+
+        """
+        return len(self.neuron_list)
+
+    @property
     def transpose_mapping_matrix(self):
         """
         In order to implement back propagation we need to calculate the theta_transpose times a_vector
@@ -85,9 +93,9 @@ class Layer(object):
         if self.layer_type != 'input':
             raise AssertionError('This property is only available for input layer')
 
-        self.value_vector = Layer._correct_numpy(self.value_vector)
+        self.a_vector = Layer._correct_numpy(self.a_vector)
         self.next_layer.delta_vector = Layer._correct_numpy(self.next_layer.delta_vector)
-        return np.matmul(self.next_layer.delta_vector, np.transpose(self.value_vector))
+        return np.matmul(self.next_layer.delta_vector, np.transpose(self.a_vector))
 
     def _create_random_mapping_matrix(self):
         """
@@ -224,7 +232,7 @@ class Layer(object):
         if self.layer_type != 'hidden':
             raise AssertionError('This method is only available for hidden layer')
         theta_transpose_times_delta = np.matmul(self.transpose_mapping_matrix, self.next_layer.delta_vector)
-        self.delta_vector = np.multiply(theta_transpose_times_delta, self.calculate_sigmoid_gradient())
+        self.delta_vector = np.delete(np.multiply(theta_transpose_times_delta, self.calculate_sigmoid_gradient()), 0, 0)
 
 
 class NN(object):
@@ -346,14 +354,18 @@ class NN(object):
 
 
         """
-        cumulative_delta_input_layer = 0
+        cumulative_delta_input_layer = np.zeros((self.hidden_layer_list[0].neuron_number,
+                                                 self.input_layer.neuron_number+1))
+        # for hidden_layer in self.hidden_layer_list:
+
         self._forward_propagate(kwargs['data'])
         self.output_layer.calculate_output_layer_delta(NN._create_y_mapping(kwargs['y']))
         for hidden_layer in self.hidden_layer_list:
             hidden_layer.calculate_hidden_layer_delta()
-        # TODO cumulative big delta implementations
-        self.input_layer.big_delta_input
 
+        cumulative_delta_input_layer += self.input_layer.big_delta_input
+
+        # TODO cumulative big delta implementations
 
 
 
