@@ -354,18 +354,19 @@ class NN(object):
 
 
         """
-        cumulative_delta_input_layer = np.zeros((self.hidden_layer_list[0].neuron_number,
-                                                 self.input_layer.neuron_number+1))
-        # for hidden_layer in self.hidden_layer_list:
-
-        self._forward_propagate(kwargs['data'])
-        self.output_layer.calculate_output_layer_delta(NN._create_y_mapping(kwargs['y']))
+        cumulative_delta_input_layer = np.zeros(self.input_layer.mapping_matrix.shape)
         for hidden_layer in self.hidden_layer_list:
-            hidden_layer.calculate_hidden_layer_delta()
+            cumulative_delta_hidden_layer = np.zeros(hidden_layer.mapping_matrix.shape)
+        for i in range(0, len(kwargs['train_data']['X'])):
+            self._forward_propagate(kwargs['train_data']['X'][i])
+            self.output_layer.calculate_output_layer_delta(NN._create_y_mapping(kwargs['train_data']['y'][i]))
+            for hidden_layer in self.hidden_layer_list:
+                hidden_layer.calculate_hidden_layer_delta()
+            cumulative_delta_input_layer += self.input_layer.big_delta_input
+            cumulative_delta_hidden_layer += self.hidden_layer_list[0].big_delta_hidden
 
-        cumulative_delta_input_layer += self.input_layer.big_delta_input
+        return cumulative_delta_input_layer, cumulative_delta_hidden_layer
 
-        # TODO cumulative big delta implementations
 
 
 
