@@ -11,10 +11,12 @@ if __name__ == '__main__':
     train_parameters = {'train_data':train_data,
                         'step_size':0.2,
                         'input_size':input_size,
-                        'lambda':0.12,
-                        'num_of_iterations': 100}
+                        'lambda':1,
+                        'num_of_iterations': 300}
 
-    # first_network._forward_propagate(train_data['X'][1])
-    # a,b =first_network.back_propagate(train_data=train_data)
+
+
+    # print first_network.predict(test_data=train_data)
     first_network.train(**train_parameters)
+    print first_network.predict(test_data=train_data)
 

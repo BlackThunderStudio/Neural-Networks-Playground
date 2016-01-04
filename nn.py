@@ -397,7 +397,33 @@ class NN(object):
         for i in range(0, kwargs['num_of_iterations']):
             big_delta_input, big_delta_hidden = self.back_propagate(**kwargs)
             self.update_weights(big_delta_input, [big_delta_hidden], **kwargs)
-        print(self.h_theta)
+
+    def predict(self, **kwargs):
+        """
+        Tests the accuracy of the model build during the training
+        :return:
+        """
+        true_number = 0
+        for i in range(0, len(kwargs['test_data']['y'])):
+
+            self._forward_propagate(kwargs['test_data']['X'][i])
+            predicted_value = np.where(self.h_theta == self.h_theta.max())[0][0]
+
+            # If the value of the y is 10 it is represented as zero
+            if kwargs['test_data']['y'][i][0] == 10:
+                if predicted_value == 0:
+                    true_number += 1
+                else:
+                    pass
+            else:
+                if kwargs['test_data']['y'][i][0] == predicted_value:
+                    true_number += 1
+                else:
+                    pass
+
+        return true_number
+
+
 
 
 
