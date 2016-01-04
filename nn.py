@@ -367,8 +367,37 @@ class NN(object):
 
         return cumulative_delta_input_layer, cumulative_delta_hidden_layer
 
+    def update_weights(self, big_delta_input, big_delta_hidden_list, **kwargs):
+        """
+
+        :param big_delta_input: mapping matrix from input layer to hidden layer
+        :param big_delta_hidden_list: mapping matrices in between hidden layers and output layer
+        :return:
+        """
+        constant = kwargs['step_size'] * (kwargs['input_size'] ** -1)
+        old_theta_first_column = self.input_layer.mapping_matrix[:,0]
+        old_theta_first_column.shape = (old_theta_first_column.shape[0], 1)
+        new_theta = (constant * (big_delta_input + kwargs['lambda'] * self.input_layer.mapping_matrix))
+        new_theta -= old_theta_first_column * kwargs['lambda'] * constant
+        self.input_layer.update_mapping_matrix(new_theta)
+        for i in range(0, len(big_delta_hidden_list)):
+            layer = self.hidden_layer_list[i]
+            old_theta_first_column = layer.mapping_matrix[:,0]
+            old_theta_first_column.shape = (old_theta_first_column.shape[0], 1)
+            new_theta = (constant * (big_delta_hidden_list[i] + kwargs['lambda'] * layer.mapping_matrix))
+            new_theta -= old_theta_first_column * kwargs['lambda'] * constant
+            layer.update_mapping_matrix(new_theta)
+
+    def train(self, **kwargs):
+        """
+        Combines all the logic
 
 
+        """
+        for i in range(0, kwargs['num_of_iterations']):
+            big_delta_input, big_delta_hidden = self.back_propagate(**kwargs)
+            self.update_weights(big_delta_input, [big_delta_hidden], **kwargs)
+        print(self.h_theta)
 
 
 
