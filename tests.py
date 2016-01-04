@@ -11,8 +11,8 @@ if __name__ == '__main__':
     train_parameters = {'train_data':train_data,
                         'step_size':0.2,
                         'input_size':input_size,
-                        'lambda':1,
-                        'num_of_iterations': 300}
+                        'lambda':1.7,
+                        'num_of_iterations': 400}
 
 
 
