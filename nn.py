@@ -377,15 +377,15 @@ class NN(object):
         constant = kwargs['step_size'] * (kwargs['input_size'] ** -1)
         old_theta_first_column = self.input_layer.mapping_matrix[:,0]
         old_theta_first_column.shape = (old_theta_first_column.shape[0], 1)
-        new_theta = (constant * (big_delta_input + kwargs['lambda'] * self.input_layer.mapping_matrix))
-        new_theta -= old_theta_first_column * kwargs['lambda'] * constant
+        new_theta = self.input_layer.mapping_matrix - (constant * (big_delta_input + kwargs['lambda'] * self.input_layer.mapping_matrix))
+        new_theta += old_theta_first_column * kwargs['lambda'] * constant
         self.input_layer.update_mapping_matrix(new_theta)
         for i in range(0, len(big_delta_hidden_list)):
             layer = self.hidden_layer_list[i]
             old_theta_first_column = layer.mapping_matrix[:,0]
             old_theta_first_column.shape = (old_theta_first_column.shape[0], 1)
-            new_theta = (constant * (big_delta_hidden_list[i] + kwargs['lambda'] * layer.mapping_matrix))
-            new_theta -= old_theta_first_column * kwargs['lambda'] * constant
+            new_theta = layer.mapping_matrix - (constant * (big_delta_hidden_list[i] + kwargs['lambda'] * layer.mapping_matrix))
+            new_theta += old_theta_first_column * kwargs['lambda'] * constant
             layer.update_mapping_matrix(new_theta)
 
     def train(self, **kwargs):
